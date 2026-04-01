@@ -1,13 +1,13 @@
 function getCtx() {
-	const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('example'))
-	return canvas.getContext('2d')
+  const canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('example'))
+  return canvas.getContext('2d')
 }
 
 function clear() {
-	const ctx = getCtx()
+  const ctx = getCtx()
 
-	ctx.fillStyle = 'black'
-	ctx.fillRect(0, 0, 400, 400)
+  ctx.fillStyle = 'black'
+  ctx.fillRect(0, 0, 400, 400)
 }
 
 /**
@@ -15,26 +15,26 @@ function clear() {
  * @param {string} color
  */
 function drawVector(v, color) {
-	const ctx = getCtx()
+  const ctx = getCtx()
 
-	ctx.beginPath()
-	ctx.moveTo(200, 200)
-	ctx.lineTo(200 + v.x * 20, 200 - v.y * 20)
-	ctx.strokeStyle = color
-	ctx.stroke()
+  ctx.beginPath()
+  ctx.moveTo(200, 200)
+  ctx.lineTo(200 + v.x * 20, 200 - v.y * 20)
+  ctx.strokeStyle = color
+  ctx.stroke()
 }
 
 function main() {
-	clear()
+  clear()
 
-	drawVector(new Vector3([2.25, 2.25, 0]), 'red')
+  drawVector(new Vector3([2.25, 2.25, 0]), 'red')
 }
 
 function handleDrawEvent() {
-	clear()
+  clear()
 
-	drawVector(new Vector3([+x1.value, +y1.value, 0]), 'red')
-	drawVector(new Vector3([+x2.value, +y2.value, 0]), 'blue')
+  drawVector(new Vector3([+x1.value, +y1.value, 0]), 'red')
+  drawVector(new Vector3([+x2.value, +y2.value, 0]), 'blue')
 }
 
 function angleBetween(v1, v2) {
@@ -47,29 +47,29 @@ function areaTriangle(v1, v2) {
 }
 
 function handleDrawOperationEvent() {
-	clear()
+  clear()
 
-	const v1 = new Vector3([+x1.value, +y1.value, 0])
-	drawVector(v1, 'red')
-	const v2 = new Vector3([+x2.value, +y2.value, 0])
-	drawVector(v2, 'blue')
+  const v1 = new Vector3([+x1.value, +y1.value, 0])
+  drawVector(v1, 'red')
+  const v2 = new Vector3([+x2.value, +y2.value, 0])
+  drawVector(v2, 'blue')
 
-	const op = operation.value
-	switch (op) {
-		case 'add':
-		case 'sub':
-			v1[op](v2)
-			drawVector(v1, 'green')
-			break
-		case 'mul':
-		case 'div':
+  const op = operation.value
+  switch (op) {
+    case 'add':
+    case 'sub':
+      v1[op](v2)
+      drawVector(v1, 'green')
+      break
+    case 'mul':
+    case 'div':
     case 'normalize':
-			const s = +scalar.value
-			v1[op](s)
-			v2[op](s)
-			drawVector(v1, 'green')
-			drawVector(v2, 'green')
-			break
+      const s = +scalar.value
+      v1[op](s)
+      v2[op](s)
+      drawVector(v1, 'green')
+      drawVector(v2, 'green')
+      break
     case 'magnitude':
       console.log(`Magnitude v1: ${v1.magnitude()}`)
       console.log(`Magnitude v2: ${v2.magnitude()}`)
@@ -80,5 +80,5 @@ function handleDrawOperationEvent() {
     case 'area':
       console.log(`Area of the triangle: ${areaTriangle(v1, v2)}`)
       break
-	}
+  }
 }
