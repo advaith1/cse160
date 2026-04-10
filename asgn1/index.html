@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Advaith CSE 160 asgn1</title>
+    <meta name="color-scheme" content="dark" />
+  </head>
+
+  <body onload="main()" style="font-family: sans-serif">
+    <canvas id="webgl" width="400" height="400">Please use a browser that supports "canvas"</canvas>
+    <br><br>
+    <button id="squareButton">Square</button>
+    <button id="triangleButton">Triangle</button>
+    <button id="circleButton">Circle</button>
+    <button id="diamondButton">Diamond</button>
+    <br><br>
+    <button id="lineButton">Line</button>
+    <button id="endLineButton">End Line</button>
+    <button id="smoothDrawButton">Smooth Draw</button>
+    <br><br>
+    Red <input id="red" type="range" min="0" max="1" step="0.01" value="1">
+    Green <input id="green" type="range" min="0" max="1" step="0.01" value="1">
+    Blue <input id="blue" type="range" min="0" max="1" step="0.01" value="1">
+    Opacity <input id="opacity" type="range" min="0" max="1" step="0.01" value="1">
+
+    <br>
+    Size <input id="size" type="range" min="5" max="40" value="10">
+    Circle Segments <input id="segments" type="range" min="1" max="60" value="30">
+
+    <br><br>
+    <button id="clearButton">Clear</button>
+
+    <br><br>
+    <button id="drawPictureButton">Draw Picture</button> <a href="https://advaith.is-in-hyper.space/20176197d4.jpeg" target="_blank">Original sketch</a>
+
+    <br><br>
+    Extra features: <br>
+    - Picture is integrated into the painting functionality, can draw on it <br>
+    - Opacity slider for controlling the alpha value <br>
+    - Diamond shape option <br>
+    - Line drawing option: each point draws a line from the previous point. the End Line button ends the line to start a new one. <br>
+    - Smooth Draw option: similar to Line but only for dragging, automatically ends the line on mouse up.
+
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/webgl-debug.js"></script>
+    <script src="lib/cuon-utils.js"></script>
+    <script src="Point.js"></script>
+    <script src="Triangle.js"></script>
+    <script src="Circle.js"></script>
+    <script src="Line.js"></script>
+    <script src="Diamond.js"></script>
+    <script src="asgn1.js"></script>
+  </body>
+</html>
