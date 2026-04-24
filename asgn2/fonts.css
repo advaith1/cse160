@@ -1,0 +1,27 @@
+@font-face {
+  font-family: gg sans;
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://advaith.io/fonts/ggsans-normal.woff2) format("woff2")
+}
+
+@font-face {
+  font-family: gg sans;
+  font-style: normal;
+  font-weight: 500;
+  src: url(https://advaith.io/fonts/ggsans-medium.woff2) format("woff2")
+}
+
+@font-face {
+  font-family: gg sans;
+  font-style: normal;
+  font-weight: 700;
+  src: url(https://advaith.io/fonts/ggsans-bold.woff2) format("woff2")
+}
+
+@font-face {
+  font-family: ABC Ginto Nord;
+  font-style: normal;
+  font-weight: 800;
+  src: url(https://advaith.io/fonts/ABCGintoNord-Black.woff2) format("woff2");
+}

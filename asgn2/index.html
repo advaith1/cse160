@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Blocky Wumpus</title>
+    <meta name="color-scheme" content="dark">
+
+    <style>
+      body {
+        background-color: #1a1a1e;
+        font-family: "gg sans", sans-serif;
+        font-size: 16px;
+        line-height: 1.1em;
+      }
+      h1 {
+        font-family: "ABC Ginto Nord", sans-serif;
+        font-size: 36px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin: 16px 0;
+
+        img {
+          height: 48px;
+        }
+      }
+      input {
+        accent-color: #5865f2;
+      }
+      input[type="range"] {
+        height: 4px;
+        margin: 12px 2px;
+        transform: translateY(-3px);
+        cursor: ew-resize;
+
+        /* firefox support for umair */
+        @supports (-moz-appearance:none) {
+          & {
+              transform: translateY(8px);
+          }
+        }
+      }
+      input[type="checkbox"] {
+        height: 16px;
+        width: 16px;
+        margin: 0;
+        transform: translateY(2px);
+        cursor: pointer;
+      }
+      label {
+        cursor: pointer;
+      }
+      button {
+        background-color: #5865f2;
+        border-radius: 2px;
+        border: none;
+        padding: 3px 8px;
+        cursor: pointer;
+        font-family: "gg sans", sans-serif;
+        font-size: 16px;
+        font-weight: 500;
+
+        &:hover {
+          background-color: #4452bb;
+        }
+      }
+      #waveContainer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      #waveImg {
+        cursor: pointer;
+      }
+      #perf {
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+    <link rel="stylesheet" href="fonts.css">
+  </head>
+
+  <body onload="main()">
+    <h1><img src="https://cdn.discordapp.com/emojis/810126296574066698.webp?size=256">Blocky Wumpus</h1>
+    <canvas id="webgl" width="600" height="600">Please use a browser that supports "canvas"</canvas><br><br>
+
+    <span id="perf"></span><br><br>
+
+    <div id="waveContainer">Drag to rotate, shift-click for <img id="waveImg" height="32" src="https://advaith.is-in-hyper.space/4e1a4b13f4.gif"></div><br>
+
+    Rotate around:
+    X <input id="xSlider" type="range" min="-180" max="180" value="10"> Y <input id="ySlider" type="range" min="-180" max="180" value="50">
+    <br><br>
+    <button id="animateAllButton">Animate All</button> <button id="stopAllButton">Stop All</button>
+    <br><br>
+    Body <input id="bodySlider" type="range" min="-2" max="2" step="0.01" value="0">
+    <label>Animation <input id="bodyAnimationCheckbox" type="checkbox"></label><br>
+    Front Left Leg Top <input id="frontLeftLegTopSlider" type="range" min="-15" max="15" step="0.01" value="0">
+    <label>Animation <input id="frontLeftLegTopAnimationCheckbox" type="checkbox"></label><br>
+    Front Left Leg Bottom <input id="frontLeftLegBottomSlider" type="range" min="-10" max="20" step="0.01" value="0">
+    <label>Animation <input id="frontLeftLegBottomAnimationCheckbox" type="checkbox"></label><br>
+    Front Right Leg Top <input id="frontRightLegTopSlider" type="range" min="-15" max="15" step="0.01" value="0">
+    <label>Animation <input id="frontRightLegTopAnimationCheckbox" type="checkbox"></label><br>
+    Front Right Leg Bottom <input id="frontRightLegBottomSlider" type="range" min="-10" max="20" step="0.01" value="0">
+    <label>Animation <input id="frontRightLegBottomAnimationCheckbox" type="checkbox"></label><br>
+    Back Left Leg Top <input id="backLeftLegTopSlider" type="range" min="-15" max="15" step="0.01" value="0">
+    <label>Animation <input id="backLeftLegTopAnimationCheckbox" type="checkbox"></label><br>
+    Back Left Leg Bottom <input id="backLeftLegBottomSlider" type="range" min="-10" max="20" step="0.01" value="0">
+    <label>Animation <input id="backLeftLegBottomAnimationCheckbox" type="checkbox"></label><br>
+    Back Left Leg Foot <input id="backLeftLegFootSlider" type="range" min="0" max="10" step="0.01" value="0">
+    <label>Animation <input id="backLeftLegFootAnimationCheckbox" type="checkbox"></label><br>
+    Back Right Leg Top <input id="backRightLegTopSlider" type="range" min="-15" max="15" step="0.01" value="0">
+    <label>Animation <input id="backRightLegTopAnimationCheckbox" type="checkbox"></label><br>
+    Back Right Leg Bottom <input id="backRightLegBottomSlider" type="range" min="-10" max="20" step="0.01" value="0">
+    <label>Animation <input id="backRightLegBottomAnimationCheckbox" type="checkbox"></label><br>
+    Back Right Leg Foot <input id="backRightLegFootSlider" type="range" min="0" max="10" step="0.01" value="0">
+    <label>Animation <input id="backRightLegFootAnimationCheckbox" type="checkbox"></label><br>
+    Tail <input id="tailSlider" type="range" min="-10" max="10" step="0.01" value="0">
+    <label>Animation <input id="tailAnimationCheckbox" type="checkbox"></label><br>
+    Leaf <input id="leafSlider" type="range" min="-0.01" max="0.01" step="0.00001" value="0">
+    <label>Animation <input id="leafAnimationCheckbox" type="checkbox"></label><br>
+
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/webgl-debug.js"></script>
+    <script src="lib/cuon-utils.js"></script>
+    <script src="lib/cuon-matrix.js"></script>
+    <script src="Cube.js"></script>
+    <script src="Cylinder.js"></script>
+    <script src="asgn2.js"></script>
+  </body>
+</html>
