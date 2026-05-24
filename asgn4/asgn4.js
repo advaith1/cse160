@@ -1,0 +1,811 @@
+// Blocky World CruzCraft by advaith for CSE 160
+// Inspiration and some textures from Minecraft, (c) Mojang AB
+// Some inspiration from Umair Rizwan
+// Some code and textures (c) 2012 kanda and matsuda
+
+// Vertex shader program
+const VSHADER_SOURCE = /*glsl*/ `
+	attribute vec4 a_Position;
+	attribute vec2 a_UV;
+	attribute vec3 a_Normal;
+	varying vec2 v_UV;
+	varying vec3 v_Normal;
+	varying vec4 v_VertPos;
+	uniform mat4 u_ModelMatrix;
+	uniform mat4 u_NormalMatrix;
+	uniform mat4 u_ViewMatrix;
+	uniform mat4 u_ProjectionMatrix;
+	void main() {
+		v_VertPos = u_ModelMatrix * a_Position;
+		gl_Position = u_ProjectionMatrix * u_ViewMatrix * v_VertPos;
+		v_UV = a_UV;
+		v_Normal = normalize(vec3(u_NormalMatrix * vec4(a_Normal, 0.0)));
+		// v_Normal = a_Normal;
+	}
+`
+
+// Fragment shader program
+const FSHADER_SOURCE = /*glsl*/ `
+	precision mediump float;
+	varying vec2 v_UV;
+	varying vec3 v_Normal;
+	varying vec4 v_VertPos;
+	uniform vec4 u_FragColor;
+	uniform vec3 u_lightPos;
+	uniform vec3 u_eyePos;
+	uniform vec3 u_atPos;
+	uniform bool u_lightingEnabled;
+	uniform bool u_pointLightEnabled;
+	uniform vec3 u_pointLightColor;
+	uniform bool u_spotLightEnabled;
+	uniform vec3 u_spotLightColor;
+	uniform sampler2D u_Sampler0;
+	uniform sampler2D u_Sampler1;
+	uniform sampler2D u_Sampler2;
+	uniform sampler2D u_Sampler3;
+	uniform sampler2D u_Sampler4;
+	uniform sampler2D u_Sampler5;
+	uniform sampler2D u_Sampler6;
+	uniform sampler2D u_Sampler7;
+	uniform sampler2D u_Sampler8;
+	uniform sampler2D u_Sampler9;
+	uniform sampler2D u_Sampler10;
+	uniform int u_whichTexture;
+	void main() {
+		if (u_whichTexture == -4) { // normal debug
+			gl_FragColor = vec4((v_Normal + 1.0) / 2.0, 1.0);
+		} else if (u_whichTexture == -3) { // color
+			gl_FragColor = u_FragColor;
+		} else if (u_whichTexture == -2) { // UV debug
+			gl_FragColor = vec4(v_UV, 1.0, 1.0);
+		} else if (u_whichTexture == -1) { // ground
+			gl_FragColor = texture2D(u_Sampler1, v_UV * 100.0);
+		} else if (u_whichTexture == 0) { // texture0
+			gl_FragColor = texture2D(u_Sampler0, v_UV);
+		} else if (u_whichTexture == 1) { // texture1
+			gl_FragColor = texture2D(u_Sampler1, v_UV);
+		} else if (u_whichTexture == 2) { // texture2
+			gl_FragColor = texture2D(u_Sampler2, v_UV);
+		} else if (u_whichTexture == 3) { // texture3
+			gl_FragColor = texture2D(u_Sampler3, v_UV);
+		} else if (u_whichTexture == 4) { // texture4
+			gl_FragColor = texture2D(u_Sampler4, v_UV);
+		} else if (u_whichTexture == 5) { // texture5
+			gl_FragColor = texture2D(u_Sampler5, v_UV);
+		} else if (u_whichTexture == 6) { // texture6
+			gl_FragColor = texture2D(u_Sampler6, v_UV);
+		} else if (u_whichTexture == 7) { // texture7
+			gl_FragColor = texture2D(u_Sampler7, v_UV);
+		} else if (u_whichTexture == 8) { // texture8
+			gl_FragColor = texture2D(u_Sampler8, v_UV);
+		} else if (u_whichTexture == 9) { // texture9
+			gl_FragColor = texture2D(u_Sampler9, v_UV);
+		} else if (u_whichTexture == 10) { // texture10
+			gl_FragColor = texture2D(u_Sampler10, v_UV);
+		} else { // Error
+			gl_FragColor = vec4(1, 0.2, 0.2, 1);
+		}
+		if (gl_FragColor.a < 0.5) discard;
+
+		if (!u_lightingEnabled) return;
+
+		vec3 ambient = gl_FragColor.rgb * 0.2;
+		
+		vec3 N = normalize(v_Normal);
+		vec3 E = normalize(u_eyePos - v_VertPos.xyz);
+
+		// point light (sunlight)
+		vec3 diffuse = vec3(0.0);
+		vec3 specular = vec3(0.0);
+		if (u_pointLightEnabled) {
+			vec3 lightVector = u_lightPos - v_VertPos.xyz;
+			float r = length(lightVector);
+
+			vec3 L = normalize(lightVector);
+			float NdotL = max(dot(N, L), 0.0);
+			vec3 R = reflect(-L, N);
+
+			diffuse = gl_FragColor.rgb * NdotL * u_pointLightColor;
+
+			specular = pow(max(dot(E, R), 0.0), 64.0) * 0.8 * u_pointLightColor;
+		}
+		
+
+		// spotlight
+		vec3 spotlightDiffuse = vec3(0.0);
+		vec3 spotlightSpecular = vec3(0.0);
+		if (u_spotLightEnabled) {
+			vec3 spotlightDirection = normalize(u_atPos - u_eyePos);
+			float spotlightDot = dot(-E, spotlightDirection);
+			float spotFactor = smoothstep(0.95, 0.98, spotlightDot);
+
+			float spotlightNdotL = max(dot(N, E), 0.0);
+			spotlightDiffuse = gl_FragColor.rgb * spotlightNdotL * spotFactor * 0.6 * u_spotLightColor;
+			vec3 spotlightR = reflect(-E, N);
+			spotlightSpecular = pow(max(dot(E, spotlightR), 0.0), 64.0) * 0.4 * spotFactor * u_spotLightColor;
+		}
+
+		gl_FragColor.rgb = ambient + diffuse + spotlightDiffuse;
+		// disable specular for sky
+		if (u_whichTexture != 0) {
+			gl_FragColor.rgb += specular + spotlightSpecular;
+		}
+
+	}
+`
+
+/** @type {HTMLCanvasElement} */
+let canvas
+/** @type {WebGLRenderingContext} */
+let gl
+/** @type {WebGLUniformLocation} */
+let u_FragColor
+/** @type {WebGLUniformLocation} */
+let u_ModelMatrix
+/** @type {WebGLUniformLocation} */
+let u_NormalMatrix
+/** @type {WebGLUniformLocation} */
+let u_ViewMatrix
+/** @type {WebGLUniformLocation} */
+let u_ProjectionMatrix
+/** @type {WebGLUniformLocation} */
+let u_lightPos
+/** @type {WebGLUniformLocation} */
+let u_eyePos
+/** @type {WebGLUniformLocation} */
+let u_atPos
+/** @type {WebGLUniformLocation} */
+let u_lightingEnabled
+/** @type {WebGLUniformLocation} */
+let u_pointLightEnabled
+/** @type {WebGLUniformLocation} */
+let u_pointLightColor
+/** @type {WebGLUniformLocation} */
+let u_spotLightEnabled
+/** @type {WebGLUniformLocation} */
+let u_spotLightColor
+/** @type {WebGLUniformLocation} */
+let u_whichTexture
+/** @type {WebGLUniformLocation[]} */
+const samplers = []
+
+function setupWebGL() {
+	// Retrieve <canvas> element
+	canvas = document.getElementById('webgl')
+
+	// Get the rendering context for WebGL
+	gl = canvas.getContext('webgl', { preserveDrawingBuffer: true, alpha: true })
+	if (!gl) {
+		console.log('Failed to get the rendering context for WebGL')
+		return
+	}
+
+	gl.enable(gl.DEPTH_TEST)
+	gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true)
+}
+
+function connectVariablesToGLSL() {
+	// Initialize shaders
+	if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+		console.log('Failed to intialize shaders.')
+	}
+
+	// Get the storage location of a_Position
+	const a_Position = gl.getAttribLocation(gl.program, 'a_Position')
+	if (a_Position < 0) {
+		console.log('Failed to get the storage location of a_Position')
+	}
+
+	const a_UV = gl.getAttribLocation(gl.program, 'a_UV')
+	if (a_UV < 0) {
+		console.log('Failed to get the storage location of a_UV')
+	}
+
+	const a_Normal = gl.getAttribLocation(gl.program, 'a_Normal')
+	if (a_Normal < 0) {
+		console.log('Failed to get the storage location of a_Normal')
+	}
+
+	// Create a buffer object
+	const vertexBuffer = gl.createBuffer()
+	if (!vertexBuffer) {
+		console.log('Failed to create the buffer object')
+	}
+
+	// Bind the buffer object to target
+	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+
+	const FSIZE = Float32Array.BYTES_PER_ELEMENT
+
+	// a_Position: 3 floats at offset 0
+	gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 8 * FSIZE, 0)
+	gl.enableVertexAttribArray(a_Position)
+
+	// a_UV: 2 floats after 3 floats
+	gl.vertexAttribPointer(a_UV, 2, gl.FLOAT, false, 8 * FSIZE, 3 * FSIZE)
+	gl.enableVertexAttribArray(a_UV)
+
+	// a_Normal: 3 floats after 5 floats
+	gl.vertexAttribPointer(a_Normal, 3, gl.FLOAT, false, 8 * FSIZE, 5 * FSIZE)
+	gl.enableVertexAttribArray(a_Normal)
+
+	// Get the storage location of u_FragColor
+	u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor')
+	if (!u_FragColor) console.log('Failed to get the storage location of u_FragColor')
+
+	// Get the storage location of u_ModelMatrix
+	u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix')
+	if (!u_ModelMatrix) console.log('Failed to get the storage location of u_ModelMatrix')
+
+	// Get the storage location of u_NormalMatrix
+	u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix')
+	if (!u_NormalMatrix) console.log('Failed to get the storage location of u_NormalMatrix')
+
+	// Get the storage location of u_ViewMatrix
+	u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix')
+	if (!u_ViewMatrix) console.log('Failed to get the storage location of u_ViewMatrix')
+
+	// Get the storage location of u_ProjectionMatrix
+	u_ProjectionMatrix = gl.getUniformLocation(gl.program, 'u_ProjectionMatrix')
+	if (!u_ProjectionMatrix) console.log('Failed to get the storage location of u_ProjectionMatrix')
+
+	// Get the storage location of u_lightPos
+	u_lightPos = gl.getUniformLocation(gl.program, 'u_lightPos')
+	if (!u_lightPos) console.log('Failed to get the storage location of u_lightPos')
+
+	// Get the storage location of u_eyePos
+	u_eyePos = gl.getUniformLocation(gl.program, 'u_eyePos')
+	if (!u_eyePos) console.log('Failed to get the storage location of u_eyePos')
+
+	// Get the storage location of u_atPos
+	u_atPos = gl.getUniformLocation(gl.program, 'u_atPos')
+	if (!u_atPos) console.log('Failed to get the storage location of u_atPos')
+
+	// Get the storage location of u_lightingEnabled
+	u_lightingEnabled = gl.getUniformLocation(gl.program, 'u_lightingEnabled')
+	if (!u_lightingEnabled) console.log('Failed to get the storage location of u_lightingEnabled')
+
+	// Get the storage location of u_pointLightEnabled
+	u_pointLightEnabled = gl.getUniformLocation(gl.program, 'u_pointLightEnabled')
+	if (!u_pointLightEnabled) console.log('Failed to get the storage location of u_pointLightEnabled')
+
+	// Get the storage location of u_pointLightColor
+	u_pointLightColor = gl.getUniformLocation(gl.program, 'u_pointLightColor')
+	if (!u_pointLightColor) console.log('Failed to get the storage location of u_pointLightColor')
+
+	// Get the storage location of u_spotLightEnabled
+	u_spotLightEnabled = gl.getUniformLocation(gl.program, 'u_spotLightEnabled')
+	if (!u_spotLightEnabled) console.log('Failed to get the storage location of u_spotLightEnabled')
+
+	// Get the storage location of u_spotLightColor
+	u_spotLightColor = gl.getUniformLocation(gl.program, 'u_spotLightColor')
+	if (!u_spotLightColor) console.log('Failed to get the storage location of u_spotLightColor')
+
+	// Get the storage location of u_whichTexture
+	u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture')
+	if (!u_whichTexture) console.log('Failed to get the storage location of u_whichTexture')
+
+	for (let i = 0; i <= Object.values(Textures).at(-1); i++) {
+		samplers[i] = gl.getUniformLocation(gl.program, `u_Sampler${i}`)
+		if (!samplers[i]) console.log(`Failed to get the storage location of u_Sampler${i}`)
+	}
+}
+
+function initTexture(path, textureNum, [minFilter, magFilter]) {
+	const image = new Image() // Create the image object
+	if (!image) {
+		console.log('Failed to create the image object')
+		return
+	}
+	// Register the event handler to be called on loading an image
+	image.onload = () => {
+		const texture = gl.createTexture() // Create a texture object
+		if (!texture) {
+			console.log('Failed to create the texture object')
+			return
+		}
+
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1) // Flip the image's y axis
+		// Enable texture unit
+		gl.activeTexture(gl.TEXTURE0 + textureNum)
+		// Bind the texture object to the target
+		gl.bindTexture(gl.TEXTURE_2D, texture)
+
+		// Set the texture parameters
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+
+		// Set the texture image
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+		gl.generateMipmap(gl.TEXTURE_2D)
+
+		// Set the texture unit to the sampler
+		gl.uniform1i(samplers[textureNum], textureNum)
+	}
+
+	// Tell the browser to load an image
+	image.src = path
+}
+
+let eye = [0, 1, 0]
+let at = [0, 1, -3]
+let up = [0, 1, 0]
+
+let velocityY = 0
+
+let slugX
+let slugZ
+let slugAngle = Math.random() * Math.PI * 2
+
+// the Ground texture is GrassTop repeated 100x
+
+const Textures = {
+	NormalDebug: -4,
+	Color: -3,
+	UVDebug: -2,
+	Ground: -1,
+	Sky: 0,
+	GrassTop: 1,
+	GrassSide: 2,
+	Dirt: 3,
+	LogTop: 4,
+	LogSide: 5,
+	Leaves: 6,
+	Planks: 7,
+	Stone: 8,
+	Cobblestone: 9,
+	Sand: 10
+}
+
+const blocks = Array.from({ length: 100 }, () => Array.from({ length: 100 }, () => new Array(100)))
+
+const BLOCK_TYPES = [, 'grass', 'dirt', 'log', 'leaves', 'planks', 'stone', 'cobblestone', 'sand']
+
+let currentBlock = 'dirt'
+const keys = new Set()
+
+let davis = new Model('davis.obj', new Matrix4().scale(0.1, 0.1, 0.1).translate(-30, 5, -50))
+
+function parseColor(string) {
+	const r = parseInt(string.slice(1, 3), 16) / 255
+	const g = parseInt(string.slice(3, 5), 16) / 255
+	const b = parseInt(string.slice(5, 7), 16) / 255
+	return [r, g, b]
+}
+
+function main() {
+	setupWebGL()
+	connectVariablesToGLSL()
+
+	const IMAGE = [gl.LINEAR_MIPMAP_LINEAR, gl.LINEAR]
+	const MINECRAFT = [gl.NEAREST_MIPMAP_LINEAR, gl.NEAREST]
+
+	initTexture('../asgn3/textures/sky_cloud.jpg', Textures.Sky, IMAGE)
+	initTexture('../asgn3/textures/jungle_grass_top.png', Textures.GrassTop, MINECRAFT)
+	initTexture('../asgn3/textures/jungle_grass_side.png', Textures.GrassSide, MINECRAFT)
+	initTexture('../asgn3/textures/dirt.png', Textures.Dirt, MINECRAFT)
+	initTexture('../asgn3/textures/log_spruce_top.png', Textures.LogTop, MINECRAFT)
+	initTexture('../asgn3/textures/log_spruce.png', Textures.LogSide, MINECRAFT)
+	initTexture('../asgn3/textures/leaves_spruce_jungle.png', Textures.Leaves, MINECRAFT)
+	initTexture('../asgn3/textures/planks_spruce.png', Textures.Planks, MINECRAFT)
+	initTexture('../asgn3/textures/stone.png', Textures.Stone, MINECRAFT)
+	initTexture('../asgn3/textures/cobblestone.png', Textures.Cobblestone, MINECRAFT)
+	initTexture('../asgn3/textures/sand.png', Textures.Sand, MINECRAFT)
+
+	setCurrentBlock('dirt')
+
+	document.onkeydown = e => {
+		keys.add(e.key)
+		// jump
+		if (e.key === ' ' && isOnGround()) velocityY = 12
+		if (e.key in BLOCK_TYPES) setCurrentBlock(BLOCK_TYPES[e.key])
+	}
+	document.onkeyup = e => keys.delete(e.key)
+
+	document.onwheel = e => {
+		const i = BLOCK_TYPES.indexOf(currentBlock)
+		const next = e.deltaY > 0 ? (i < BLOCK_TYPES.length - 1 ? i + 1 : 1) : i > 1 ? i - 1 : BLOCK_TYPES.length - 1
+		setCurrentBlock(BLOCK_TYPES[next])
+	}
+
+	canvas.oncontextmenu = e => e.preventDefault()
+	canvas.onmousedown = e => {
+		const x = Math.floor(at[0])
+		const y = Math.max(Math.floor(at[1] + 0.9), 0)
+		const z = Math.floor(at[2])
+
+		if (e.buttons === 1) {
+			//
+			if (document.pointerLockElement !== canvas) {
+				canvas.requestPointerLock()
+			} else {
+				const nearSlug = Math.hypot(eye[0] - slugX, eye[2] - slugZ) < 10
+				const lookingDown = at[1] < eye[1]
+				if (nearSlug && lookingDown) {
+					document.exitPointerLock()
+					alert('You found the slug!')
+				} else if (blocks[x + 50][y][z + 50]) {
+					delete blocks[x + 50][y][z + 50]
+				}
+			}
+		} else if (e.buttons === 2) {
+			blocks[x + 50][y][z + 50] = currentBlock
+		}
+	}
+	canvas.onmousemove = e => {
+		if (document.pointerLockElement !== canvas) return
+
+		const mouseDeltaX = e.movementX
+		const mouseDeltaY = e.movementY
+
+		if (mouseDeltaX === 0 && mouseDeltaY === 0) return
+
+		const d = new Vector3(at).sub(new Vector3(eye)).normalize()
+		const horizontalLen = Math.hypot(d.x, d.z)
+
+		const horizontalAngle = Math.atan2(d.z, d.x) + (mouseDeltaX * 0.5 * Math.PI) / 180
+		const verticalAngle = Math.max(
+			-Math.PI / 2 + 0.01,
+			Math.min(Math.PI / 2 - 0.01, Math.atan2(d.y, horizontalLen) - (mouseDeltaY * 0.5 * Math.PI) / 180)
+		)
+
+		d.x = Math.cos(verticalAngle) * Math.cos(horizontalAngle)
+		d.y = Math.sin(verticalAngle)
+		d.z = Math.cos(verticalAngle) * Math.sin(horizontalAngle)
+
+		at = new Vector3(eye).add(d.mul(3)).elements
+	}
+
+	fovSlider.oninput = e => (fov.innerText = e.target.value)
+
+	let treeChance = 0.1
+	const leavesChance = 0.7
+	for (let x = 5; x < 95; x++) {
+		treeChance *= 1.2
+		if (Math.random() < treeChance) {
+			for (let z = 5; z < 95; z++) {
+				if (blocks[x][0][z] || Math.hypot(x - 50, z - 50) < 10) continue
+				if (Math.random() < treeChance) {
+					treeChance *= 0.5
+					const height = Math.floor(Math.random() * 5) + 10
+					for (let y = 0; y < height; y++) {
+						blocks[x][y][z] = 'log'
+					}
+					const leavesStart = Math.floor(Math.random() * 3) + height - 3
+					for (let y = leavesStart; y < height + 2; y++) {
+						if (Math.random() < leavesChance) blocks[x - 1][y][z] = 'leaves'
+						if (Math.random() < leavesChance) blocks[x + 1][y][z] = 'leaves'
+						if (Math.random() < leavesChance) blocks[x][y][z - 1] = 'leaves'
+						if (Math.random() < leavesChance) blocks[x][y][z + 1] = 'leaves'
+					}
+				}
+			}
+		}
+	}
+
+	const blockChance = 0.0025
+	for (let x = 0; x < 100; x++) {
+		for (let z = 0; z < 100; z++) {
+			if (!blocks[x][0][z] && Math.hypot(x - 50, z - 50) > 3 && Math.random() < blockChance) {
+				blocks[x][0][z] = Math.random() < 0.8 ? 'grass' : 'dirt'
+			}
+		}
+	}
+
+	// slug initial position
+	do {
+		slugX = Math.random() * 80 - 40
+		slugZ = Math.random() * 80 - 40
+	} while (isBlocked({ x: slugX, y: 0, z: slugZ }))
+
+	gl.uniform1i(u_lightingEnabled, true)
+	lightingCheckbox.onchange = e => gl.uniform1i(u_lightingEnabled, e.target.checked)
+
+	gl.uniform1i(u_pointLightEnabled, true)
+	pointlightCheckbox.onchange = e => gl.uniform1i(u_pointLightEnabled, e.target.checked)
+
+	gl.uniform3f(u_pointLightColor, 1, 1, 1)
+	pointLightColorPicker.oninput = e => gl.uniform3f(u_pointLightColor, ...parseColor(e.target.value))
+
+	gl.uniform1i(u_spotLightEnabled, true)
+	spotlightCheckbox.onchange = e => gl.uniform1i(u_spotLightEnabled, e.target.checked)
+
+	gl.uniform3f(u_spotLightColor, 1, 1, 1)
+	spotLightColorPicker.oninput = e => gl.uniform3f(u_spotLightColor, ...parseColor(e.target.value))
+
+	// Specify the color for clearing <canvas>
+	gl.clearColor(0.0, 0.0, 0.0, 1.0)
+
+	requestAnimationFrame(tick)
+}
+
+let lastTickTime = performance.now()
+let lastRenderTime = lastTickTime
+let renderNum = 0
+
+function tick(timestamp) {
+	const dt = (timestamp - lastTickTime) / 1000
+	lastTickTime = timestamp
+
+	// movement
+	if (keys.size > 0) {
+		const d = new Vector3(at).sub(new Vector3(eye)).normalize().setY(0).normalize()
+		const right = Vector3.cross(d, new Vector3(up)).normalize()
+		const change = new Vector3()
+		if (keys.has('w')) {
+			// move forward
+			change.add(d)
+		}
+		if (keys.has('s')) {
+			// move backward
+			change.sub(d)
+		}
+		if (keys.has('a')) {
+			// move left
+			change.sub(right)
+		}
+		if (keys.has('d')) {
+			// move right
+			change.add(right)
+		}
+		if (!change.is0) {
+			change.mul((8 * dt) / change.magnitude())
+			const newEye = new Vector3(eye).add(change)
+			if (!isBlocked(newEye)) {
+				eye = newEye.elements
+				at = new Vector3(at).add(change).elements
+			}
+		}
+		if (keys.has('q')) {
+			// turn left
+			const d_ = new Vector3(d)
+			const r = Math.hypot(d_.x, d_.z)
+			const theta = Math.atan2(d_.z, d_.x) - (90 * dt * Math.PI) / 180
+			d_.x = r * Math.cos(theta)
+			d_.z = r * Math.sin(theta)
+			at = new Vector3(eye).add(d_.mul(3)).setY(at[1]).elements
+		}
+		if (keys.has('e')) {
+			// turn right
+			const d_ = new Vector3(d)
+			const r = Math.hypot(d_.x, d_.z)
+			const theta = Math.atan2(d_.z, d_.x) + (90 * dt * Math.PI) / 180
+			d_.x = r * Math.cos(theta)
+			d_.z = r * Math.sin(theta)
+			at = new Vector3(eye).add(d_.mul(3)).setY(at[1]).elements
+		}
+	}
+
+	// gravity
+	if (!isOnGround()) {
+		velocityY -= 50 * dt
+	} else {
+		if (velocityY < 0) velocityY = 0
+	}
+	if (velocityY !== 0) {
+		const newEyeY = eye[1] + velocityY * dt
+		const clampedY = Math.max(newEyeY, 0)
+		const dy = clampedY - eye[1]
+		at[1] += dy
+		eye[1] = clampedY
+		if (clampedY === 0) velocityY = 0
+	}
+
+	// slug movement
+	const slugSpeed = 0.1
+	const slugDx = Math.sin(slugAngle) * slugSpeed * dt
+	const slugDz = -Math.cos(slugAngle) * slugSpeed * dt
+	if (isBlocked({ x: slugX + slugDx, y: 0, z: slugZ + slugDz })) {
+		slugAngle = Math.random() * Math.PI * 2
+	} else {
+		slugX += slugDx
+		slugZ += slugDz
+	}
+
+	if (animateLightCheckbox.checked) {
+		lightX.value = 40 * Math.cos(timestamp / 2000)
+	}
+
+	render()
+
+	// update dom every 10 renders
+	if (renderNum === 0) {
+		const duration = performance.now() - lastRenderTime
+		perf.innerText = `${String(Math.floor(1 / (duration / 1000)))} fps`
+		position.innerText = `Position: ${Math.floor(eye[0])}, ${Math.floor(eye[1])}, ${Math.floor(eye[2])}`
+	}
+	lastRenderTime = performance.now()
+	renderNum = (renderNum + 1) % 10
+
+	requestAnimationFrame(tick)
+}
+
+function isBlocked({ x, y, z }) {
+	const r = 0.4
+	const by = Math.floor(y)
+	for (const dx of [-r, r]) {
+		for (const dz of [-r, r]) {
+			const bx = Math.floor(x + dx) + 50
+			const bz = Math.floor(z + dz) + 50
+			if (bx < 0 || bx >= 100 || bz < 0 || bz >= 100) return true
+			if (blocks[bx]?.[by]?.[bz]) return true
+		}
+	}
+	return false
+}
+
+function isOnGround() {
+	// standing on the ground or on top of a block
+	if (eye[1] <= 0) return true
+	return isBlocked({ x: eye[0], y: Math.floor(eye[1]) - 1, z: eye[2] })
+}
+
+function setCurrentBlock(block) {
+	currentBlock = block
+	window[block].style.outline = '4px solid white'
+	for (const otherBlock of BLOCK_TYPES) {
+		if (otherBlock && otherBlock !== block) {
+			window[otherBlock].style.outline = 'none'
+		}
+	}
+}
+
+const BlockTextures = {
+	grass: {
+		topTexture: Textures.GrassTop,
+		sideTexture: Textures.GrassSide,
+		bottomTexture: Textures.Dirt
+	},
+	dirt: {
+		texture: Textures.Dirt
+	},
+	log: {
+		texture: Textures.LogTop,
+		sideTexture: Textures.LogSide
+	},
+	leaves: {
+		texture: Textures.Leaves
+	},
+	planks: {
+		texture: Textures.Planks
+	},
+	stone: {
+		texture: Textures.Stone
+	},
+	cobblestone: {
+		texture: Textures.Cobblestone
+	},
+	sand: {
+		texture: Textures.Sand
+	}
+}
+
+function render() {
+	// Clear <canvas>
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+	gl.uniformMatrix4fv(
+		u_ProjectionMatrix,
+		false,
+		new Matrix4() //
+			.setPerspective(fovSlider.value, canvas.width / canvas.height, 0.1, 200).elements
+	)
+
+	gl.uniformMatrix4fv(
+		u_ViewMatrix,
+		false,
+		new Matrix4() //
+			.setLookAt(...eye, ...at, ...up).elements
+	)
+
+	const lightPos = [+lightX.value, +lightY.value, +lightZ.value]
+	gl.uniform3f(u_lightPos, ...lightPos)
+
+	gl.uniform3f(u_eyePos, ...eye)
+	gl.uniform3f(u_atPos, ...at)
+
+	// Sun Light
+	drawCube({
+		matrix: new Matrix4() //
+			.translate(...lightPos)
+			.scale(-0.5, -0.5, -0.5)
+			.translate(-0.5, -0.5, -0.5),
+		originalMatrix: new Matrix4() //
+			.translate(...lightPos)
+			.scale(0.5, 0.5, 0.5)
+			.translate(-0.5, -0.5, -0.5),
+		color: [1, 1, 0.8, 1],
+		texture: Textures.Color
+	})
+
+	// Ground
+	drawCube({
+		matrix: new Matrix4() //
+			.translate(-50, -1, -50)
+			.scale(100, 0.1, 100),
+		texture: Textures.Ground
+	})
+
+	// Sky
+	drawCube({
+		matrix: new Matrix4() //
+			.scale(-100, -100, -100)
+			.translate(-0.5, -0.75, -0.5),
+		originalMatrix: new Matrix4() //
+			.scale(100, 100, 100)
+			.translate(-0.5, -0.75, -0.5),
+		texture: Textures.Sky
+	})
+
+	for (let x = 0; x < blocks.length; x++) {
+		for (let y = 0; y < blocks[x].length; y++) {
+			for (let z = 0; z < blocks[x][y].length; z++) {
+				const block = blocks[x][y][z]
+				if (!block) continue
+				const matrix = new Matrix4().setTranslate(x - 50, y - 0.89, z - 50).scale(0.99999, 0.99999, 0.99999)
+				drawCube({
+					matrix,
+					...BlockTextures[block]
+				})
+			}
+		}
+	}
+
+	// outline the target block if pointing at one
+	const tbx = Math.floor(at[0])
+	const tby = Math.max(Math.floor(at[1] + 0.9), 0)
+	const tbz = Math.floor(at[2])
+	if (outlineCheckbox.checked || blocks[tbx + 50]?.[tby]?.[tbz + 50]) {
+		drawCubeOutline(new Matrix4().setTranslate(tbx, tby - 0.89, tbz))
+	}
+
+	// Sphere
+	drawSphere({
+		matrix: new Matrix4() //
+			.translate(2, 0.25, -3),
+		color: [1, 1, 1, 1]
+	})
+
+	davis.render()
+
+	// Slug
+	const slugColor = {
+		color: [0.9, 0.8, 0, 1],
+		texture: Textures.Color
+	}
+	const slugMatrix = new Matrix4() //
+		.translate(slugX, -0.9, slugZ)
+		.rotate((-slugAngle * 180) / Math.PI, 0, 1, 0)
+	// Body
+	drawCube({
+		matrix: new Matrix4(slugMatrix) //
+			.scale(0.2, 0.1, 0.5),
+		...slugColor
+	})
+	// Head
+	drawCube({
+		matrix: new Matrix4(slugMatrix) //
+			.translate(0, 0.28, -0.28)
+			.rotate(45, 1, 0, 0)
+			.scale(0.2, 0.1, 0.4),
+		...slugColor
+	})
+	// Left Antenna
+	drawCube({
+		matrix: new Matrix4(slugMatrix) //
+			.translate(0.04, 0.27, -0.23)
+			.rotate(20, 0, 0, 1)
+			.scale(0.02, 0.15, 0.02),
+		...slugColor
+	})
+	// Right Antenna
+	drawCube({
+		matrix: new Matrix4(slugMatrix) //
+			.translate(0.14, 0.27, -0.23)
+			.rotate(-20, 0, 0, 1)
+			.scale(0.02, 0.15, 0.02),
+		...slugColor
+	})
+}

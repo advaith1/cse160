@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>CruzCraft</title>
+    <meta name="color-scheme" content="dark">
+
+    <style>
+      body {
+        background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url(../asgn3/textures/dirt.png);
+        background-size: 100px;
+        image-rendering: pixelated;
+        font-family: Minecraft;
+        font-size: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      h1 {
+        margin: 0 0 14px;
+        line-height: 1em;
+      }
+      sub {
+        font-size: 14px;
+        display: inline-block;
+        position: absolute;
+        translate: -40px 22px;
+      }
+      canvas {
+        max-width: 100%;
+      }
+      #canvasContainer {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 8px;
+      }
+      #crosshair {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.5;
+      }
+      canvas {
+        cursor: pointer;
+      }
+      .spaceBetween {
+        display: flex;
+        justify-content: space-between;
+      }
+      #bottomContainer {
+        width: 1000px;
+        max-width: 100%;
+        line-height: 1em;
+      }
+      #controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      #perf {
+        white-space: pre;
+      }
+      .block {
+        image-rendering: pixelated;
+        cursor: pointer;
+        margin: 2px;
+      }
+      .controlRow {
+        display: flex;
+        gap: 24px;
+      }
+      input {
+        accent-color: white;
+        &[type="range"] {
+          cursor: ew-resize;
+          transform: translate(0, 2px);
+          margin-top: 0;
+
+          /* firefox */
+          @supports (-moz-appearance:none) {
+            & {
+                transform: translateY(4px);
+            }
+          }
+        }
+        &[type="color"] {
+          height: 14px;
+          padding: 0;
+          border: none;
+          cursor: pointer;
+          &::-webkit-color-swatch-wrapper {
+            padding: 0;
+          }
+        }
+      }
+      label {
+        cursor: pointer;
+      }
+
+      @font-face {
+        font-family: Minecraft;
+        font-style: normal;
+        font-weight: 400;
+        src: url(https://www.minecraft.net/etc.clientlibs/minecraftnet/clientlibs/clientlib-site/resources/fonts/Minecraft-Seven_v2.woff2) format("woff2");
+      }      
+    </style>
+  </head>
+
+  <body onload="main()">
+    <h1>CruzCraft<sub>now with lighting!</sub></h1>
+    <div id="canvasContainer">
+      <img id="crosshair" src="../asgn3/textures/crosshair.png" width="16" height="16">
+      <canvas id="webgl" width="1000" height="450">Please use a browser that supports "canvas"</canvas>
+    </div>
+    <div id="bottomContainer" class="spaceBetween">
+      <div id="controls">
+        <div id="perf"></div>
+        <div id="position"></div>
+        <div>
+          <img src="../asgn3/textures/jungle_grass_side.png" width="32" height="32" class="block" id="grass" onclick="setCurrentBlock(this.id)">
+          <img src="../asgn3/textures/dirt.png" width="32" height="32" class="block" id="dirt" onclick="setCurrentBlock(this.id)">
+          <img src="../asgn3/textures/log_spruce.png" width="32" height="32" class="block" id="log" onclick="setCurrentBlock(this.id)">
+          <img src="../asgn3/textures/leaves_spruce_jungle.png" width="32" height="32" class="block" id="leaves" onclick="setCurrentBlock(this.id)">
+          <img src="../asgn3/textures/planks_spruce.png" width="32" height="32" class="block" id="planks" onclick="setCurrentBlock(this.id)">
+          <img src="../asgn3/textures/stone.png" width="32" height="32" class="block" id="stone" onclick="setCurrentBlock(this.id)">
+          <img src="../asgn3/textures/cobblestone.png" width="32" height="32" class="block" id="cobblestone" onclick="setCurrentBlock(this.id)">
+          <img src="../asgn3/textures/sand.png" width="32" height="32" class="block" id="sand" onclick="setCurrentBlock(this.id)">
+        </div>
+        <div class="controlRow">
+          <span>FOV <input id="fovSlider" type="range" min="30" max="110" value="60"> <span id="fov">60</span>°</span>
+          <label>Always Show Block Outline <input id="outlineCheckbox" type="checkbox"></label>
+        </div>
+        <div class="controlRow">
+          <label>Show Normals <input id="normalsCheckbox" type="checkbox"></label>
+          <label>Enable Lighting <input id="lightingCheckbox" type="checkbox" checked></label>
+        </div>
+        <div class="controlRow">
+          <label>Sunlight (Point) <input id="pointlightCheckbox" type="checkbox" checked></label>
+          <label>Sun Animation <input id="animateLightCheckbox" type="checkbox" checked></label>
+          <label>Sunlight Color <input type="color" id="pointLightColorPicker" value="#ffffff"></label>
+        </div>
+        <div>Sun X <input id="lightX" type="range" min="-50" max="50" value="-20" step="0.01"> Y <input id="lightY" type="range" min="-1" max="75" value="50" step="0.01"> Z <input id="lightZ" type="range" min="-50" max="50" value="0" step="0.01"></div>
+        <div class="controlRow">
+          <label>Flashlight (Spot) <input id="spotlightCheckbox" type="checkbox" checked></label>
+          <label>Flashlight Color <input type="color" id="spotLightColorPicker" value="#ffffff"></label>
+        </div>
+      </div>
+      <div>
+        Welcome to the UCSC Redwood Forest!<br>
+        Find (and click) the banana slug,<br>
+        or build anything you want!<br><br>
+        WASD to move around<br>
+        QE or move the mouse to turn the camera<br>
+        Space to jump<br>
+        Number keys or mouse wheel to switch active block<br>
+        Right click to place block, left click to remove block<br>
+      </div>
+    </div>
+
+    <script src="lib/webgl-utils.js"></script>
+    <script src="lib/webgl-debug.js"></script>
+    <script src="lib/cuon-utils.js"></script>
+    <script src="lib/cuon-matrix-cse160.js"></script>
+    <script src="Cube.js"></script>
+    <script src="Sphere.js"></script>
+    <script src="Model.js"></script>
+    <script src="asgn4.js"></script>
+  </body>
+</html>
